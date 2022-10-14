@@ -1,17 +1,25 @@
 # riscv-dockerfile
-Dockerfile to create Docker image for embedded software development for RISC-V using picolibc
+Dockerfile to create a Docker image for bare-metal embedded software development targetting RISC-V running against picolibc. This is mainly tested on 32-bit VexRiscv.
 
 ### Status
-Work in progress on toolchain setup, especially the picolibc part
+Hello world built against picolibc 1.7.9 runs on VexRiscv `-march=rv32` `-mabi=ilp32`. Picolibc pico-hello example runs in QEMU rv32 virt target.
 
 ### Contents
-QEMU
-GCC cross toolchain including GDB
-
+ - QEMU
+ - GCC cross toolchain including GDB
+ - Crosstool-NG 1.25 based toolchain build (sample config included)
+ 
 ### Building the Docker image
-make build
+`make build`
+
+Depends on https://github.com/likewise/vexriscv-dockerfile.git Docker image.
+(But easy to merge, no hard interdependencies.)
 
 ### Running the Docker image
-make run
+`make run`
 
-This mounts the /dev/usb in the Docker container, allowing (sudo) OpenOCD to connect to a USB JTAG adapter on the host (tested with BusBlaster v2.5).
+This mounts `/dev/usb` in the Docker container, allowing (sudo) OpenOCD to connect to a USB JTAG adapter on the host (tested with BusBlaster v2.5).
+
+### Running the Docker image from a remote host
+Assuming you are logged into a remote host that hosts this Docker image,
+`make remote` to run the image inside a container, forwarding via X11.

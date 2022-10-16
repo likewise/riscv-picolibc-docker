@@ -6,6 +6,18 @@ FROM vexriscv:latest
 USER root
 WORKDIR /
 
+USER root
+WORKDIR /
+
+# Generate and configure the character set encoding to en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+
+# @TODO fix this warning: /bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+RUN locale-gen --purge en_US.UTF-8
+RUN echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
+
 # https://github.com/five-embeddev/riscv-scratchpad/blob/master/cmake/cmake/riscv.cmake
 # https://keithp.com/picolibc/
 # https://crosstool-ng.github.io/docs/build/
@@ -32,18 +44,20 @@ cd crosstool-ng-1.25.0 && ./configure --prefix=/opt && make -j8 install && cd ..
 # copy ct-ng configuration to build a cross toolchain for riscv, with picolibc companion library enabled
 RUN ls -al /opt/share/crosstool-ng/samples/ | grep riscv
 
-# add crosstool configuration for riscv+picolibc
+# add crosstool configuration for riscv with newlib and picolibc, this contains the install path also
 # wow, the ADD/COPY command syntax is really horrible if you want to copy directories recursively...#
 ADD riscv32-unknown-elf-picolibc /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc
+
+# switch to picolib 1.7.9
 RUN sed -ri 's@^CT_PICOLIBC_DEVEL_BRANCH=.*@CT_PICOLIBC_DEVEL_BRANCH="1.7.9"@' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config && \
 grep -e 'CT_PICOLIBC_DEVEL_BRANCH="1.7.9"' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
+# enable GCC test suite
 RUN sed -ri 's@^(# CT_TEST_SUITE_GCC is not set|CT_TEST_SUITE_GCC=.*)@CT_TEST_SUITE_GCC=y@' /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
 
 #ADD riscv64-unknown-elf-picolibc /opt/share/crosstool-ng/samples/riscv64-unknown-elf-picolibc
 
-# verify that worked
+# verify that the configuration is in place
 RUN head /opt/share/crosstool-ng/samples/riscv32-unknown-elf-picolibc/crosstool.config
-#RUN chown -R vexriscv:vexriscv /home/vexriscv/crosstool-riscv && chmod -R go+r /home/vexriscv/crosstool-riscv
 
 # switch to user to build the cross toolchain
 USER vexriscv
@@ -64,10 +78,10 @@ ENV PATH="/home/vexriscv/.local/bin:${PATH}"
 RUN echo PATH=$PATH && meson --version && cd crosstool-riscv32 && /opt/bin/ct-ng build
 
 #RUN echo 'export PATH=$PATH:/home/vexriscv/x-tools/riscv32-unknown-elf/bin' >> ~/.bashrc
-RUN echo 'export PATH=$PATH:/home/vexriscv/x179/riscv32-unknown-elf/bin' >> ~/.bashrc
+RUN echo 'export PATH=$PATH:/home/vexriscv/x-tools/riscv32-unknown-elf/bin' >> ~/.bashrc
 
 # make cross toolchain and qemu available during container build
-ENV PATH="${PATH}:/home/vexriscv/x179/riscv32-unknown-elf/bin:/opt/bin"
+ENV PATH="${PATH}:/home/vexriscv/x-tools/riscv32-unknown-elf/bin:/opt/bin"
 
 # build the hello world example, run it semihosted in qemu and verify it runs correctly
 RUN git clone --branch=1.7.9 --depth=1 https://github.com/picolibc/picolibc.git && \

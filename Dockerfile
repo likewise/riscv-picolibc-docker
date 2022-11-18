@@ -97,6 +97,26 @@ cd picolibc/hello-world && sed -i 's@riscv64@riscv32@' Makefile && make hello-wo
 #RUN cd crosstool-riscv && /opt/bin/ct-ng build && cd .. && rm -rf crosstool-riscv
 #RUN echo 'export PATH=$PATH:/home/vexriscv/x-tools/riscv64-unknown-elf/bin:' >> ~/.bashrc
 
+USER root
+WORKDIR /
+
+# to create TAP0 for testing purposes (CocoTB)
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+iproute2 uml-utilities iputils-ping netcat
+
+# to create Wireguard packets from within container
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+wireguard-tools
+
+RUN cd /etc/wireguard/ && wg genkey > /etc/wireguard/private.key && chmod go= /etc/wireguard/private.key && \
+cat /etc/wireguard/private.key | wg pubkey > /etc/wireguard/public.key && echo -n "[Interface]\nPrivateKey = " > /etc/wireguard/wg0.conf && \
+chmod go= /etc/wireguard/wg0.conf && \
+cat private.key >> /etc/wireguard/wg0.conf && echo -n "Address = 10.8.0.1/24\n\n" >> /etc/wireguard/wg0.conf && \
+echo -n "[Peer]\nPublicKey = X6NJW+IznvItD3B5TseUasRPjPzF0PkM5+GaLIjdBG4=\nAllowedIPs = 10.8.0.0/24\nEndpoint = 192.168.255.2:51820\n" >> /etc/wireguard/wg0.conf
+
+RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
+x11-apps
+
 USER vexriscv
 WORKDIR /home/vexriscv
 

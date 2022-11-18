@@ -64,6 +64,7 @@ remote:
 	# Launch the container
 	docker run -it --rm \
 	--name riscv \
+	--cap-add=NET_ADMIN \
 	--hostname $${CONTAINER_HOSTNAME} \
 	-u `id -u`:`id -g` \
 	-e DISPLAY=:$${CONTAINER_DISPLAY} \

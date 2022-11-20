@@ -108,18 +108,39 @@ iproute2 uml-utilities iputils-ping netcat
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
 wireguard-tools
 
-RUN cd /etc/wireguard/ && wg genkey > /etc/wireguard/private.key && chmod go= /etc/wireguard/private.key && \
+# we used this once, then we stored the private key here -- this is the private key of the container guest
+#RUN cd /etc/wireguard/ && wg genkey > /etc/wireguard/private.key && chmod go= /etc/wireguard/private.key && \
+RUN cd /etc/wireguard/ && echo "MIuE1NHyNFf++dzYbFkn3pn9ouRVUtSHShYL791NcEg=" > /etc/wireguard/private.key && chmod go= /etc/wireguard/private.key && \
 cat /etc/wireguard/private.key | wg pubkey > /etc/wireguard/public.key && echo -n "[Interface]\nPrivateKey = " > /etc/wireguard/wg0.conf && \
 chmod go= /etc/wireguard/wg0.conf && \
 cat private.key >> /etc/wireguard/wg0.conf && echo -n "Address = 10.8.0.1/24\n\n" >> /etc/wireguard/wg0.conf && \
 echo -n "[Peer]\nPublicKey = X6NJW+IznvItD3B5TseUasRPjPzF0PkM5+GaLIjdBG4=\nAllowedIPs = 10.8.0.0/24\nEndpoint = 192.168.255.2:51820\n" >> /etc/wireguard/wg0.conf
+# matches the hard-coded private key inside wg_lwip.
 
+# xeyes, to verify SSH/X11 forwarding and have visual feedback on mouse input, return screen latency
 RUN apt-get update && apt-get upgrade -y && apt-get update && apt-get install -y \
 x11-apps
+
+# https://github.com/themperek/cocotb-test/commit/30176257d4052da639fe6a715cee705af385a210
+# Fixes: No module named 'cocotb._vendor.find_libpython'
+# Issued here: https://github.com/cocotb/cocotb/issues/3131
+RUN sed -i \
+-e 's@import cocotb._vendor.find_libpython as find_libpython@import find_libpython@' \
+-e 's@install_requires=["cocotb>=1.5", "pytest"],@install_requires=["cocotb>=1.5", "pytest", "find_libpython"],@' \
+`find /usr/local/lib/python*/*-packages/cocotb_test/simulator.py`
+#git clone https://github.com/themperek/cocotb-test.git && cd cocotb-test.git && git format-patch -1 30176257d4052da639fe6a715cee705af385a210
 
 USER vexriscv
 WORKDIR /home/vexriscv
 
+# This is how to install cocotb-test 0.2.3 for user, it has above fix, but requires Python 3.7 
+#pip3 install -v https://github.com/themperek/cocotb-test/archive/refs/tags/v0.2.3.zip
+
+#RUN pip3 install cocotb-test
+#RUN sed -i \
+#-e 's@import cocotb._vendor.find_libpython as find_libpython@import find_libpython@' \
+#-e 's@install_requires=["cocotb>=1.5", "pytest"],@install_requires=["cocotb>=1.5", "pytest", "find_libpython"],@' \
+#`find /home/vexriscv/.local/lib/python*/*-packages/cocotb_test/simulator.py` || true
+
 ENV COLORTERM="truecolor"
 ENV TERM="xterm-256color"
-

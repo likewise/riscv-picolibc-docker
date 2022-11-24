@@ -130,6 +130,9 @@ RUN sed -i \
 `find /usr/local/lib/python*/*-packages/cocotb_test/simulator.py`
 #git clone https://github.com/themperek/cocotb-test.git && cd cocotb-test.git && git format-patch -1 30176257d4052da639fe6a715cee705af385a210
 
+RUN (curl http://ghdl.free.fr/site/uploads/Main/ghdl-i686-linux-latest.tar | tar xv) && \
+cd ghdl-0.29-i686-pc-linux/ && tar -C / -jxvf ghdl-0.29-i686-pc-linux.tar.bz2
+
 USER vexriscv
 WORKDIR /home/vexriscv
 

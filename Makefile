@@ -1,17 +1,26 @@
 .ONESHELL:
 
+dummy:
+	echo dummy
+
 .PHONY: build
 build:
 	docker build --build-arg=TERM="linux" --network=host -t riscv .
 
+# assures variable % is set (used for USER and DISPLAY)
+guard-%:
+	@if [ "${${*}}" = "" ]; then \
+		echo "Environment variable $* not set"; \
+		exit 1; \
+	fi
 
 # -e DISPLAY= and -v /tmp/.X11-unix:<...> allows graphical applications inside container to display on host
 # --network="host" allows localhost inside container to reach host ports
 # --device=/dev/ttyUSB0 assumes BusBlaster v2.5 on host is on /dev/ttyUSB0 (dmesg)
 # -v $$PWD/project:<...> means we mount the host project directory for persistent read/write
-run:
+run: guard-DISPLAY guard-USER
 	docker run -ti --rm \
-	--name riscv \
+	--name riscv-$(USER) \
 	-e DISPLAY=$(DISPLAY) -v /tmp/.X11-unix:/tmp/.X11-unix \
 	--network="host" \
 	--device=/dev/bus \
@@ -29,7 +38,7 @@ export:
 #	HASH=`docker run --detach riscv /bin/true` && docker export $$HASH > riscv.tar
 	HASH=`docker run --detach riscv /bin/true` && docker export $$HASH | xz -T0 > riscv.tar.xz
 
-remote:
+remote: guard-USER guard-DISPLAY
 	# Prepare target env
 	export CONTAINER_DISPLAY="0"
 	export CONTAINER_HOSTNAME="riscv-container"
@@ -63,7 +72,7 @@ remote:
 
 	# Launch the container
 	docker run -it --rm \
-	--name riscv \
+	--name riscv-$(USER) \
 	--cap-add=NET_ADMIN \
 	--hostname $${CONTAINER_HOSTNAME} \
 	-u `id -u`:`id -g` \
